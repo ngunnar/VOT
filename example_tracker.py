@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 
 from cvl.dataset import OnlineTrackingBenchmark
-from cvl.trackers import NCCTracker
+from cvl.trackers import NCCTracker, MOSSETracker
 
 dataset_path = "Mini-OTB"
 
@@ -21,12 +21,13 @@ if __name__ == "__main__":
     if SHOW_TRACKING:
         cv2.namedWindow("tracker")
 
-    tracker = NCCTracker()
+    # tracker = NCCTracker()
+    tracker = MOSSETracker()
 
     for frame_idx, frame in enumerate(a_seq):
         print(f"{frame_idx} / {len(a_seq)}")
         image_color = frame['image']
-        image = np.sum(image_color, 2) / 3
+        image = np.sum(image_color, 2) / 3     # grayscale image
 
         if frame_idx == 0:
             bbox = frame['bounding_box']
