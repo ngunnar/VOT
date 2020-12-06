@@ -137,7 +137,6 @@ class MOSSETracker():
         image = np.log(np.float32(image) + 0.1)  # adding a small number for stability
         image = (image - image.mean()) / image.std() + 1e-5
         window = cv2.createHanningWindow((image.shape[1], image.shape[0]), cv2.CV_32F)
-        # TODO: change this later for multichannel
         image = image * window
         return image
 
@@ -174,5 +173,4 @@ class MOSSETracker():
         g_rest[max_loc[0]-5:max_loc[0]+5, max_loc[1]-5:max_loc[1]+5] = 0
         psr = (g_max - g_rest.mean()) / g_rest.std()
 
-        # TODO: check if the order of coordinates is correct
         return g, (max_loc[1] - w//2, max_loc[0] - h//2), psr
