@@ -7,7 +7,7 @@ import os
 import numpy as np
 
 if torch.__version__ == "1.2.0":
-    from torchvision.models.utils import load_state_dict_from_url
+    from torchvision.models.utils import load_state_dict_from_url as load_url
 else:
     from torch.utils.model_zoo import load_url
 
@@ -56,6 +56,16 @@ model_urls = {
     'alexnet': 'https://download.pytorch.org/models/alexnet-owt-4df8aa71.pth',
 }
 
+class AlexNetRefined(nn.Module):
+    def __init__(self, org_model, end_feat):
+        super(AlexNetRefined, self).__init__()
+        assert end_feat in [0, 3, 6, 8, 10], "Only use feature maps after conv2d layers"
+        self.features = org_model.features[0:end_feat+1]
+    
+    def forward(self, x):
+        x = self.features(x)
+        return x
+
 
 class AlexNetFeature(nn.Module):
 
@@ -101,7 +111,7 @@ def alexnetFeatures(pretrained=False, progress=True, **kwargs):
     """
     model = AlexNetFeature(**kwargs)
     if pretrained:
-        state_dict = load_state_dict_from_url(model_urls['alexnet'],
+        state_dict = load_url(model_urls['alexnet'],
                                               progress=progress)
         model.load_state_dict(state_dict)
     return model

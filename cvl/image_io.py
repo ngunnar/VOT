@@ -44,6 +44,7 @@ def crop_patch(image, region):
     patch = np.zeros(shape=(region.height, region.width),
                      dtype=image.dtype)
 
+    print(rp0, rp1, cp0,cp1, ri0, ri1, ci0,ci1)
     patch[rp0:rp1, cp0:cp1] = image[ri0:ri1, ci0:ci1]
 
     assert patch.shape == (region.height, region.width)

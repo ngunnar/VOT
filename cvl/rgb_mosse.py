@@ -16,23 +16,6 @@ class MultiMosseTracker():
         self.lambda_ = 1e-5
         self.sigma = 2.0
 
-    def normalize(self, patch):
-        patch = patch / 255
-        patch = patch - np.mean(patch)
-        patch = patch / np.std(patch)
-        return patch
-
-    def linear_mapping(self, images):
-        max_value = images.max()
-        min_value = images.min()
-
-        parameter_a = 1 / (max_value - min_value)
-        parameter_b = 1 - max_value * parameter_a
-
-        image_after_mapping = parameter_a * images + parameter_b
-
-        return image_after_mapping
-
     def get_patch(self, features):
         region = self.region
         return [crop_patch(c, region) for c in features]

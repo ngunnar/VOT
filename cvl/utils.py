@@ -8,7 +8,6 @@ def window_func_2d(height, width):
     win = mask_col * mask_row
     return win
 
-
 def pre_process(img):
     img = img / 255
     # Get size of image
