@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 
 from cvl.dataset import OnlineTrackingBenchmark, BoundingBox
-from cvl.trackers import MultiMosseTracker
+from cvl.rgb_mosse import MultiMosseTracker
 
 dataset_path = "Mini-OTB"
 
@@ -40,8 +40,9 @@ if __name__ == "__main__":
             current_position = bbox
             tracker.start(features, bbox)
         else:
-            tracker.detect(features)         
-        #    tracker.update(image)
+            score = tracker.detect(features) 
+            #if score > 0.05: 
+            tracker.update(features)
 
         if SHOW_TRACKING:      
             bbox = tracker.region

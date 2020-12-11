@@ -5,7 +5,8 @@ import cv2
 import numpy as np
 
 from cvl.dataset import OnlineTrackingBenchmark
-from cvl.trackers import NCCTracker, GrayscaleMosseTracker
+from cvl.trackers import NCCTracker
+from cvl.grayscale_mosse import GrayscaleMosseTracker
 
 dataset_path = "Mini-OTB"
 

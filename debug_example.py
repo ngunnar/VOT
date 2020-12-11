@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 
 from cvl.dataset import OnlineTrackingBenchmark, BoundingBox
-from cvl.trackers import MultiMosseTracker
+from cvl.rgb_mosse import MultiMosseTracker
 
 SHOW_TRACKING = True
 
@@ -60,7 +60,7 @@ if __name__ == "__main__":
             tracker.start(features, bbox)
         else:
             tracker.detect(features)         
-        #    tracker.update(image)
+            tracker.update(features)
 
         if SHOW_TRACKING:      
             bbox = tracker.region
