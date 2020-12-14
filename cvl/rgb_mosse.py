@@ -24,7 +24,7 @@ class MultiMosseTracker():
         return np.asarray([pre_process(c) for c in features])
 
     def start(self, features, region):
-        assert len(features) == 3, print(len(features))
+        # assert len(features) == 3, print(len(features))
         # Image is the first frame
         # Region is the bounding box around target in first frame
         self.region = region
@@ -89,7 +89,7 @@ class MultiMosseTracker():
             self.plot(p_prepocessed, cs, c, max_pos[1], max_pos[0])
 
     def detect(self, features):
-        assert len(features) == 3, print(len(features))
+        # assert len(features) == 3, print(len(features))
         p = self.get_patch(features)
         p_prepocessed = self.preprocess_data(p)
         P = fft2(p_prepocessed)
@@ -142,7 +142,7 @@ class MultiMosseTracker():
         ax_resp2 = axs[7]
         ax_resp3 = axs[8]
 
-        ax_template.imshow(np.moveaxis(p, 0, -1))
+        ax_template.imshow(np.moveaxis(p, 0, -1)[..., :3])
         ax_template.set_title("Template image x")
 
         ax_response.imshow(np.real(response))

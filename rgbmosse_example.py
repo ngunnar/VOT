@@ -6,11 +6,14 @@ import numpy as np
 
 from cvl.dataset import OnlineTrackingBenchmark, BoundingBox
 from cvl.rgb_mosse import MultiMosseTracker
+from skimage.feature import hog
 
 dataset_path = "Mini-OTB"
 
 SHOW_TRACKING = True
 SEQUENCE_IDX = 4
+
+FEATURE = True
 
 
 if __name__ == "__main__":
@@ -28,6 +31,18 @@ if __name__ == "__main__":
         image = frame['image']
         features = [image[...,i] for i in range(image.shape[-1])]
         #image = np.sum(image_color, 2) / 3
+
+        if FEATURE:
+            # Add edge feature
+            image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            edges = cv2.Canny(image_gray, 60, 120)
+            features.append(edges)
+
+            # Add gradient feature
+            # _, hog_image = hog(image, orientations=8, pixels_per_cell=(16, 16),
+            #                    cells_per_block=(1, 1), visualize=True, multichannel=True)
+            # features.append(hog_image)
+
 
         if frame_idx == 0:
             bbox = frame['bounding_box']
