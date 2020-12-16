@@ -9,8 +9,8 @@ from cvl.rgb_mosse import MultiMosseTracker
 
 dataset_path = "Mini-OTB"
 
-SHOW_TRACKING = True
-SEQUENCE_IDX = 4
+SHOW_TRACKING = False
+SEQUENCE_IDX = 10
 
 
 if __name__ == "__main__":
@@ -21,12 +21,12 @@ if __name__ == "__main__":
     if SHOW_TRACKING:
         cv2.namedWindow("tracker") 
 
-    tracker = MultiMosseTracker()
+    tracker = MultiMosseTracker(plot_img=True)
 
     for frame_idx, frame in enumerate(a_seq):
         print(f"{frame_idx} / {len(a_seq)}")
         image = frame['image']
-        features = [image[...,i] for i in range(image.shape[-1])]
+        
         #image = np.sum(image_color, 2) / 3
 
         if frame_idx == 0:
@@ -38,11 +38,11 @@ if __name__ == "__main__":
                 bbox.height += 1
 
             current_position = bbox
-            tracker.start(features, bbox)
+            tracker.start(image, bbox)
         else:
-            score = tracker.detect(features) 
+            score = tracker.detect(image) 
             #if score > 0.05: 
-            tracker.update(features)
+            tracker.update(image)
 
         if SHOW_TRACKING:      
             bbox = tracker.region

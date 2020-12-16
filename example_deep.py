@@ -10,10 +10,9 @@ from cvl.deep_mosse import DeepTracker
 
 dataset_path = "Mini-OTB"
 
-SHOW_TRACKING = True
-SEQUENCE_IDX = 4
-search_size = 1.5
-feature_deep = 3#[0, 3, 6, 8, 10]
+SHOW_TRACKING = False
+SAVE_IMAGES = True
+SEQUENCE_IDX = 10
 
 if __name__ == "__main__":
 
@@ -24,7 +23,7 @@ if __name__ == "__main__":
     if SHOW_TRACKING:
         cv2.namedWindow("tracker")
 
-    tracker = DeepTracker(feature_deep, search_size)
+    tracker = DeepTracker(save_img=SAVE_IMAGES)
 
     for frame_idx, frame in enumerate(a_seq):
         print(f"{frame_idx} / {len(a_seq)}")
@@ -42,7 +41,7 @@ if __name__ == "__main__":
             tracker.start(image, bbox)
         else:
             tracker.detect(image)
-            #tracker.update(image)
+            tracker.update(image)
 
         if SHOW_TRACKING:
             bbox = tracker.region
