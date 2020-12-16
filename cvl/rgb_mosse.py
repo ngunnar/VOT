@@ -117,7 +117,7 @@ class MultiMosseTracker():
         f = self.get_patch(features)
         f_prepocessed = self.preprocess_data(f)
         F = fft2(f_prepocessed)
-        self.A = self.learning_rate * self.G * np.conj(P) + (1-self.learning_rate) * self.A
-        self.B = self.learning_rate * P * np.conj(P) + (1-self.learning_rate) * self.B
+        self.A = self.learning_rate * self.G * np.conj(F) + (1-self.learning_rate) * self.A
+        self.B = self.learning_rate * F * np.conj(F) + (1-self.learning_rate) * self.B
 
         self.H_conj = self.A / (self.B + self.epsilon)
