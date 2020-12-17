@@ -95,7 +95,6 @@ class MultiFeatureMosseTracker():
                 A += self.G * np.conj(F)
                 B += F * np.conj(F)
                 k += 1
-        print(k) 
         self.A = A
         self.B = B
         self.H_conj = self.A / (self.B + self.lambda_)
@@ -106,8 +105,8 @@ class MultiFeatureMosseTracker():
 
     def detect(self, image):
         self.frame += 1
-        features = get_features(image)
-        f = self.get_patch(features)
+        self.features = get_features(image)
+        f = self.get_patch(self.features)
         f = self.preprocess_data(f)
         F = fft2(f)
         R = F * self.H_conj
@@ -130,8 +129,7 @@ class MultiFeatureMosseTracker():
         return self.region
 
     def update(self, image):
-        features = get_features(image)
-        f = self.get_patch(features)
+        f = self.get_patch(self.features)
         f = self.preprocess_data(f)
         F = fft2(f)
         self.A = self.learning_rate * self.G * np.conj(F) + (1-self.learning_rate) * self.A

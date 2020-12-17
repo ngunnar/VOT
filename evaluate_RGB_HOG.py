@@ -8,7 +8,7 @@ import matplotlib
 
 from cvl.dataset import OnlineTrackingBenchmark
 from cvl.trackers import NCCTracker
-from cvl.deep_mosse import DeepTracker
+from cvl.rgb_mosse_feature import MultiFeatureMosseTracker
 
 
 def compute_iou(frame_data, tracked_box):
@@ -50,9 +50,6 @@ if __name__ == "__main__":
     # allocation
     acc_list = []
     rob_list = []
-    feature_level = 3 #[0, 3, 6]
-    search_size = 1.2
-    learning_rate = 0.01
 
     # for all sequences in the dataset
     for seq_id, a_seq in enumerate(dataset):
@@ -60,11 +57,7 @@ if __name__ == "__main__":
         iou = []
 
         # initialise the tracker
-        tracker = DeepTracker(feature_level=feature_level,
-                        search_size = search_size,
-                        learning_rate = learning_rate,
-                        save_img=True,
-                        name="evaluation/deep{0}/{1}".format(feature_level, seq_id))
+        tracker = MultiFeatureMosseTracker()
 
         # initialise progress bar
         process_desc = "Seq {:}/{:}, '{:s}'"
@@ -103,7 +96,8 @@ if __name__ == "__main__":
     # average accuracy and robustness
     acc_avg = np.asarray(acc_list).mean()
     rob_avg = np.asarray(rob_list).mean()
-
+    print("Average ACC {0}".format(acc_avg))
+    print("Average ROB {0}".format(rob_avg))
     # plot accuacry / robustness plot
     plt.figure(dpi=300)
     plt.axes().set_aspect('equal')
@@ -121,4 +115,4 @@ if __name__ == "__main__":
     path = os.path.join(os.getcwd(), 'results')
     if not os.path.exists(path):
         os.makedirs(path)
-    plt.savefig(os.path.join(path, 'deep_{0}.png'.format(feature_level)))
+    plt.savefig(os.path.join(path, 'rgb_hog.png'))

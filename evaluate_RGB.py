@@ -8,7 +8,7 @@ import matplotlib
 
 from cvl.dataset import OnlineTrackingBenchmark
 from cvl.trackers import NCCTracker
-from cvl.grayscale_mosse import GrayscaleMosseTracker
+from cvl.rgb_mosse import MultiMosseTracker
 
 
 def compute_iou(frame_data, tracked_box):
@@ -57,7 +57,7 @@ if __name__ == "__main__":
         iou = []
 
         # initialise the tracker
-        tracker = GrayscaleMosseTracker()
+        tracker = MultiMosseTracker()
 
         # initialise progress bar
         process_desc = "Seq {:}/{:}, '{:s}'"
@@ -65,7 +65,7 @@ if __name__ == "__main__":
                             desc=process_desc.format(int(seq_id) + 1, len(dataset), a_seq.sequence_name),
                             position=0)
         for frame_idx, frame in enumerate(a_seq):
-            image_color = frame['image']
+            image = frame['image']
 
             if frame_idx == 0:
                 bbox = frame['bounding_box']
@@ -76,10 +76,10 @@ if __name__ == "__main__":
                     bbox.height += 1
 
                 current_position = bbox
-                tracker.start(image_color, bbox)
+                tracker.start(image, bbox)
             else:
-                tracker.detect(image_color)
-                tracker.update(image_color)
+                tracker.detect(image)
+                tracker.update(image)
 
             # compute iou
             iou.append(compute_iou(frame, tracker.region))
@@ -115,4 +115,4 @@ if __name__ == "__main__":
     path = os.path.join(os.getcwd(), 'results')
     if not os.path.exists(path):
         os.makedirs(path)
-    plt.savefig(os.path.join(path, 'grayscale.png'))
+    plt.savefig(os.path.join(path, 'rgb.png'))
