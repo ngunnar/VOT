@@ -59,7 +59,6 @@ model_urls = {
 class AlexNetRefined(nn.Module):
     def __init__(self, org_model, end_feat):
         super(AlexNetRefined, self).__init__()
-        assert end_feat in [0, 3, 6, 8, 10], "Only use feature maps after conv2d layers"
         self.features = org_model.features[0:end_feat+1]
     
     def forward(self, x):

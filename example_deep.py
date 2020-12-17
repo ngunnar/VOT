@@ -5,7 +5,6 @@ import cv2
 import numpy as np
 
 from cvl.dataset import OnlineTrackingBenchmark
-from cvl.trackers import NCCTracker
 from cvl.deep_mosse import DeepTracker
 
 dataset_path = "Mini-OTB"
@@ -13,6 +12,12 @@ dataset_path = "Mini-OTB"
 SHOW_TRACKING = False
 SAVE_IMAGES = True
 SEQUENCE_IDX = 10
+feature_level = 3 #[0, 3, 6]
+search_size = 2#1.0
+learning_rate = 0.01
+sigma = 2/search_size
+name="deep"
+save_frame = 1
 
 if __name__ == "__main__":
 
@@ -22,8 +27,14 @@ if __name__ == "__main__":
 
     if SHOW_TRACKING:
         cv2.namedWindow("tracker")
-
-    tracker = DeepTracker(save_img=SAVE_IMAGES)
+  
+    tracker = DeepTracker(feature_level=feature_level,
+                          search_size = search_size,
+                          learning_rate = learning_rate,
+                          sigma=sigma,
+                          save_img=SAVE_IMAGES,
+                          save_frame=save_frame,
+                          name=name)
 
     for frame_idx, frame in enumerate(a_seq):
         print(f"{frame_idx} / {len(a_seq)}")

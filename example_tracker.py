@@ -23,12 +23,11 @@ if __name__ == "__main__":
         cv2.namedWindow("tracker")
 
     #tracker = NCCTracker()
-    tracker = GrayscaleMosseTracker()
+    tracker = GrayscaleMosseTracker(save_img=True)
 
     for frame_idx, frame in enumerate(a_seq):
         print(f"{frame_idx} / {len(a_seq)}")
         image_color = frame['image']
-        image = np.sum(image_color, 2) / 3
 
         if frame_idx == 0:
             bbox = frame['bounding_box']
@@ -39,10 +38,10 @@ if __name__ == "__main__":
                 bbox.height += 1
 
             current_position = bbox
-            tracker.start(image, bbox)
+            tracker.start(image_color, bbox)
         else:
-            tracker.detect(image)
-            tracker.update(image)
+            tracker.detect(image_color)
+            tracker.update(image_color)
 
         if SHOW_TRACKING:
             bbox = tracker.region

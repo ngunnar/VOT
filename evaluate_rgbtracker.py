@@ -57,7 +57,7 @@ if __name__ == "__main__":
         iou = []
 
         # initialise the tracker
-        tracker = MultiMosseTracker()
+        tracker = MultiMosseTracker(save_img=True, name="rgb_{0}".format(seq_id))
 
         # initialise progress bar
         process_desc = "Seq {:}/{:}, '{:s}'"

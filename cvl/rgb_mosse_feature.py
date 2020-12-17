@@ -1,123 +1,119 @@
 import numpy as np
+
 from scipy.fftpack import fft2, ifft2, fftshift, ifftshift
 from scipy.stats import multivariate_normal
 from scipy.ndimage import rotate
+from skimage.feature import hog
+
 from .image_io import crop_patch
-import matplotlib.pyplot as plt
-from .utils import pre_process, rotateImage
+from .utils import pre_process, rotateImage, plot
 
 ########################################################################################################################
 # RGB Mosse
 ########################################################################################################################
 
+def get_features(image):
+    features = [image[...,i] for i in range(image.shape[-1])]
+    # Add edge feature
+    # image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # edges = cv2.Canny(image_gray, 60, 120)
+    # features.append(edges)
+
+    # Add gradient feature
+    _, hog_image = hog(image, orientations=8, pixels_per_cell=(16, 16),
+                        cells_per_block=(1, 1), visualize=True, multichannel=True)
+    features.append(hog_image)
+    return features
 
 class MultiFeatureMosseTracker():
-    def __init__(self, learning_rate = 0.125):
+    def __init__(self, 
+                 learning_rate = 0.125,
+                 search_size = 1.0,
+                 save_img=False,
+                 name='rgb'):
         self.learning_rate = learning_rate 
         self.lambda_ = 1e-5
         self.sigma = 2.0
+        
+        self.search_size = search_size
+        self.save_img = save_img
+        self.name = name
 
-    def normalize(self, patch):
-        patch = patch / 255
-        patch = patch - np.mean(patch)
-        patch = patch / np.std(patch)
-        return patch
-
-    def linear_mapping(self, images):
-        max_value = images.max()
-        min_value = images.min()
-
-        parameter_a = 1 / (max_value - min_value)
-        parameter_b = 1 - max_value * parameter_a
-
-        image_after_mapping = parameter_a * images + parameter_b
-
-        return image_after_mapping
 
     def get_patch(self, features):
-        region = self.region
+        region = self.search_region
         return [crop_patch(c, region) for c in features]
 
     def preprocess_data(self, features):
         return np.asarray([pre_process(c) for c in features])
 
-    def start(self, features, region):
+    def start(self, image, region):
         # assert len(features) == 3, print(len(features))
         # Image is the first frame
         # Region is the bounding box around target in first frame
+        self.frame = 0
+        features = get_features(image)
         self.region = region
         self.region_shape = (region.height, region.width)
         self.region_center = (region.height // 2, region.width // 2)
         
+        self.search_region = region.rescale(self.search_size,round_coordinates=True)
+        self.search_region_shape = (self.search_region.height, self.search_region.width)
+        self.search_region_center = (self.search_region.height // 2, self.search_region.width // 2)
 
         # Extract patches from image
-        p = self.get_patch(features)
-        p_prepocessed = self.preprocess_data(p)
-        P = fft2(p_prepocessed)
+        f = self.get_patch(features)
+        f = self.preprocess_data(f)
+        F = fft2(f)
 
         # Create desired response
+        Sigma = np.eye(2) * self.sigma ** 2
         mu = [self.region_center[0], self.region_center[1]]
-        # mu = [0, 0]
-        covariance = [[self.sigma ** 2, 0], [0, self.sigma ** 2]]
-        x, y = np.mgrid[0:region.height:1,
-               0:region.width:1]
+        x, y = np.mgrid[0:self.search_region.height:1,
+               0:self.search_region.width:1]
         pos = np.dstack((x, y))
-        r = multivariate_normal(mu, covariance)
-        c = r.pdf(pos)
+        r = multivariate_normal(mu, Sigma)
+        g = r.pdf(pos)
 
-        self.C = np.expand_dims(fft2(c),
-                                axis=0)  # using same desired response for all channels, P is organized (channels, height, width)
+        self.G = np.expand_dims(fft2(g), axis=0)  # using same desired response for all channels, P is organized (channels, height, width)
 
-        A = np.conj(self.C) * P
-        B = np.conj(P) * P
+        A = np.conj(self.G) * F
+        B = np.conj(F) * F
 
-        # TODO train on augumented data
-        # Rotate
-        '''
-        image_center = (self.region.xpos + self.region_center[0], self.region.ypos + self.region_center[1])
-        for _ in range(100):
-            p = self.get_patch([f + 0.2 * f.std() * np.random.random(f.shape) for f in features])
-            p_prepocessed = self.preprocess_data(p)
-            P = fft2(p_prepocessed)
-            A += np.conj(self.C) * P
-            B += np.conj(P) * P
-        '''
-        '''
-        for angle in np.arange(-1,1,5):
-            f_tmp = [rotateImage(f_, angle, image_center) for f_ in features] # Rotate
-            #import matplotlib.pyplot as plt
-            #plt.imshow(np.moveaxis(np.asarray(f_tmp), 0, -1))
-            #plt.plot(image_center[0],image_center[1], 'ro')
-            #plt.show()
-            f_tmp = [f_ + 0.5 * f_.std() * np.random.random(f_.shape) for f_ in f_tmp] # Add noise
-            p_tmp = self.get_patch(f_tmp)
-            p_prepocessed = self.preprocess_data(p_tmp)
-            P = fft2(p_prepocessed)
-            A += np.conj(self.C) * P
-            B += np.conj(P) * P
-        '''
+
+        image_center = (self.region.xpos + self.region_center[1], self.region.ypos + self.region_center[0])
+        for angle in np.arange(-20,20,5):
+            img_tmp = rotateImage(image, angle, image_center) # Rotate
+            for blur in range(1,10):
+                img_tmp = cv2.blur(img_tmp, (blur,blur))
+                features = get_features(img_tmp)
+                f = self.get_patch(features)
+                f = self.preprocess_data(f)
+                F = fft2(f)
+                A += self.G * np.conj(F)
+                B += F * np.conj(F)
+        
         self.A = A
         self.B = B
-        self.M = self.A / (self.B + self.lambda_)
+        self.H_conj = self.A / (self.B + self.epsilon)
 
-        if True:
-            max_val = np.max(c)
-            max_pos = np.where(c == max_val)
-            cs = np.asarray([c for _ in range(3)])
-            self.plot(p_prepocessed, cs, c, max_pos[1], max_pos[0])
+        if self.save_img and self.frame % 10 == 0:
+            plot(image, g, self.search_region, "{0}_{1}".format(self.name, self.frame))
 
-    def detect(self, features):
-        # assert len(features) == 3, print(len(features))
-        p = self.get_patch(features)
-        p_prepocessed = self.preprocess_data(p)
-        P = fft2(p_prepocessed)
-        R = np.conj(self.M) * P
+
+    def detect(self, image):
+        self.frame += 1
+        features = get_features(image)
+        f = self.get_patch(features)
+        f = self.preprocess_data(f)
+        F = fft2(f)
+        R = F * self.H_conj
         responses = ifft2(R)
         response = responses.sum(axis=0)  # .real
         r, c = np.unravel_index(np.argmax(response), response.shape)
         print("Score {0}".format(response[r, c]))
-        if False:
-            self.plot(p, responses, response, c, r)
+        if self.save_img and self.frame % 10 == 0:
+            plot(image, response, self.search_region, "{0}_{1}".format(self.name, self.frame))
 
         # Keep for visualisation
         self.last_response = response
@@ -125,64 +121,18 @@ class MultiFeatureMosseTracker():
         r_offset = r - self.region_center[0]
         c_offset = c - self.region_center[1]
 
-        # r_offset = np.mod(r + self.region_center[0], self.region.height) - self.region_center[0]
-        # c_offset = np.mod(c + self.region_center[1], self.region.width) - self.region_center[1]
-
-        xpos_old = self.region.xpos
-        ypos_old = self.region.ypos
         self.region.xpos += c_offset
         self.region.ypos += r_offset
-        print("Old: {0}, {1}".format(xpos_old, ypos_old))
-        print("New: {0}, {1}".format(self.region.xpos, self.region.ypos))
-        print("P: {0}, {1}".format(r, c))
+        self.search_region.xpos += c_offset
+        self.search_region.ypos += r_offset
         return self.region
 
-    def update(self, features):
-        p = self.get_patch(features)
-        p_prepocessed = self.preprocess_data(p)
-        P = fft2(p_prepocessed)
-        self.A = self.learning_rate * np.conj(self.C) * P  + (1 - self.learning_rate)*self.A
-        self.B = self.learning_rate * np.conj(P) * P + (1 - self.learning_rate)*self.B
-        self.M = self.A/(self.B + self.lambda_)
+    def update(self, image):
+        features = get_features(image)
+        f = self.get_patch(features)
+        f = self.preprocess_data(f)
+        F = fft2(f)
+        self.A = self.learning_rate * self.G * np.conj(F) + (1-self.learning_rate) * self.A
+        self.B = self.learning_rate * F * np.conj(F) + (1-self.learning_rate) * self.B
 
-    def plot(self, p, responses, response, c, r):
-        import matplotlib.pyplot as plt
-        _, axs = plt.subplots(3, 3)
-        axs = axs.flatten()
-        ax_template = axs[0]
-        axs[1].imshow(np.zeros(p[0, ...].shape))
-        ax_response = axs[2]
-
-        ax_filter1 = axs[3]
-        ax_filter2 = axs[4]
-        ax_filter3 = axs[5]
-
-        ax_resp1 = axs[6]
-        ax_resp2 = axs[7]
-        ax_resp3 = axs[8]
-
-        ax_template.imshow(np.moveaxis(p, 0, -1)[..., :3])
-        ax_template.set_title("Template image x")
-
-        ax_response.imshow(np.real(response))
-        ax_response.set_title("Responses")
-        ax_response.plot(c, r, 'bo')
-
-        filters = np.real(ifft2(np.conjugate(self.M)))
-        ax_filter1.imshow(filters[0, ...], cmap=plt.get_cmap('gray'))
-        ax_filter1.set_title("Filter f1")
-
-        ax_filter2.imshow(filters[1, ...], cmap=plt.get_cmap('gray'))
-        ax_filter2.set_title("Filter f2")
-
-        ax_filter3.imshow(filters[2, ...], cmap=plt.get_cmap('gray'))
-        ax_filter3.set_title("Filter f3")
-
-        ax_resp1.imshow(np.real(responses[0, ...]), cmap=plt.get_cmap('gray'))
-        ax_resp1.plot(c, r, 'bo')
-        ax_resp2.imshow(np.real(responses[1, ...]), cmap=plt.get_cmap('gray'))
-        ax_resp2.plot(c, r, 'bo')
-        ax_resp3.imshow(np.real(responses[2, ...]), cmap=plt.get_cmap('gray'))
-        ax_resp3.plot(c, r, 'bo')
-
-        plt.show()
+        self.H_conj = self.A / (self.B + self.epsilon)

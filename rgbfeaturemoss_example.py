@@ -20,23 +20,11 @@ if __name__ == "__main__":
     if SHOW_TRACKING:
         cv2.namedWindow("tracker") 
 
-    tracker = MultiFeatureMosseTracker()
+    tracker = MultiFeatureMosseTracker(save_img=True)
 
     for frame_idx, frame in enumerate(a_seq):
         print(f"{frame_idx} / {len(a_seq)}")
         image = frame['image']
-
-        features = [image[...,i] for i in range(image.shape[-1])]
-        # Add edge feature
-        # image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        # edges = cv2.Canny(image_gray, 60, 120)
-        # features.append(edges)
-
-        # Add gradient feature
-        _, hog_image = hog(image, orientations=8, pixels_per_cell=(16, 16),
-                            cells_per_block=(1, 1), visualize=True, multichannel=True)
-        features.append(hog_image)
-
 
         if frame_idx == 0:
             bbox = frame['bounding_box']
@@ -47,11 +35,11 @@ if __name__ == "__main__":
                 bbox.height += 1
 
             current_position = bbox
-            tracker.start(features, bbox)
+            tracker.start(image, bbox)
         else:
-            score = tracker.detect(features) 
+            score = tracker.detect(image) 
             #if score > 0.05: 
-            tracker.update(features)
+            tracker.update(image)
 
         if SHOW_TRACKING:      
             bbox = tracker.region
