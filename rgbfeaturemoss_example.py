@@ -9,7 +9,7 @@ from skimage.feature import hog
 dataset_path = "Mini-OTB"
 
 SHOW_TRACKING = True
-SEQUENCE_IDX = 4
+SEQUENCE_IDX = 2
 
 
 if __name__ == "__main__":
