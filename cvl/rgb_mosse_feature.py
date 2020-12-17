@@ -1,4 +1,5 @@
 import numpy as np
+import cv2
 
 from scipy.fftpack import fft2, ifft2, fftshift, ifftshift
 from scipy.stats import multivariate_normal
@@ -82,6 +83,7 @@ class MultiFeatureMosseTracker():
 
 
         image_center = (self.region.xpos + self.region_center[1], self.region.ypos + self.region_center[0])
+        k = 0
         for angle in np.arange(-20,20,5):
             img_tmp = rotateImage(image, angle, image_center) # Rotate
             for blur in range(1,10):
@@ -92,10 +94,11 @@ class MultiFeatureMosseTracker():
                 F = fft2(f)
                 A += self.G * np.conj(F)
                 B += F * np.conj(F)
-        
+                k += 1
+        print(k) 
         self.A = A
         self.B = B
-        self.H_conj = self.A / (self.B + self.epsilon)
+        self.H_conj = self.A / (self.B + self.lambda_)
 
         if self.save_img and self.frame % 10 == 0:
             plot(image, g, self.search_region, "{0}_{1}".format(self.name, self.frame))
@@ -111,7 +114,6 @@ class MultiFeatureMosseTracker():
         responses = ifft2(R)
         response = responses.sum(axis=0)  # .real
         r, c = np.unravel_index(np.argmax(response), response.shape)
-        print("Score {0}".format(response[r, c]))
         if self.save_img and self.frame % 10 == 0:
             plot(image, response, self.search_region, "{0}_{1}".format(self.name, self.frame))
 
@@ -135,4 +137,4 @@ class MultiFeatureMosseTracker():
         self.A = self.learning_rate * self.G * np.conj(F) + (1-self.learning_rate) * self.A
         self.B = self.learning_rate * F * np.conj(F) + (1-self.learning_rate) * self.B
 
-        self.H_conj = self.A / (self.B + self.epsilon)
+        self.H_conj = self.A / (self.B + self.lambda_)

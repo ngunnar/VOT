@@ -11,7 +11,7 @@ from cvl.grayscale_mosse import GrayscaleMosseTracker
 dataset_path = "Mini-OTB"
 
 SHOW_TRACKING = True
-SEQUENCE_IDX = 10
+SEQUENCE_IDX = 0
 
 if __name__ == "__main__":
 

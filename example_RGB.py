@@ -2,15 +2,15 @@
 
 import cv2
 
-from cvl.dataset import OnlineTrackingBenchmark
-from cvl.rgb_mosse_feature import MultiFeatureMosseTracker
-from skimage.feature import hog
+import numpy as np
+
+from cvl.dataset import OnlineTrackingBenchmark, BoundingBox
+from cvl.rgb_mosse import MultiMosseTracker
 
 dataset_path = "Mini-OTB"
 
 SHOW_TRACKING = True
-SEQUENCE_IDX = 4
-
+SEQUENCE_IDX = 0
 
 if __name__ == "__main__":
 
@@ -20,11 +20,13 @@ if __name__ == "__main__":
     if SHOW_TRACKING:
         cv2.namedWindow("tracker") 
 
-    tracker = MultiFeatureMosseTracker(save_img=True)
+    tracker = MultiMosseTracker(save_img=False)
 
     for frame_idx, frame in enumerate(a_seq):
         print(f"{frame_idx} / {len(a_seq)}")
         image = frame['image']
+        
+        #image = np.sum(image_color, 2) / 3
 
         if frame_idx == 0:
             bbox = frame['bounding_box']

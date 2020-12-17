@@ -9,11 +9,11 @@ from cvl.deep_mosse import DeepTracker
 
 dataset_path = "Mini-OTB"
 
-SHOW_TRACKING = False
-SAVE_IMAGES = True
-SEQUENCE_IDX = 10
+SHOW_TRACKING = True
+SAVE_IMAGES = False
+SEQUENCE_IDX = 0
 feature_level = 3 #[0, 3, 6]
-search_size = 2#1.0
+search_size = 1#1.0
 learning_rate = 0.01
 sigma = 2/search_size
 name="deep"
