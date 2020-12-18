@@ -20,9 +20,11 @@ class GrayscaleMosseTracker:
     def __init__(self, 
                  learning_rate=0.125, 
                  epsilon=1e-3,
-                 search_size = 1, 
+                 search_size = 1,
+                 sigma = 2.0,
                  save_img=False,
-                 name='grayscale'):
+                 name='grayscale',
+                save_frame = 10):
         self.patch_fft2 = None
         self.last_response = None
         self.region = None
@@ -31,10 +33,12 @@ class GrayscaleMosseTracker:
 
         self.lr = learning_rate  # for incremental MOSSE
         self.epsilon = epsilon
+        self.sigma = sigma / search_size
 
         self.search_size = search_size
         self.save_img = save_img
         self.name = name
+        self.save_frame = save_frame
 
     def crop_patch(self, image):
         region = self.search_region
@@ -69,8 +73,7 @@ class GrayscaleMosseTracker:
         F = fft2(patch)
 
         # initialise G as 2D Gaussian centered on the target
-        sigma_g = 2.0
-        Sigma = np.eye(2) * sigma_g ** 2
+        Sigma = np.eye(2) * self.sigma ** 2
         mu = [self.search_region_center[0], self.search_region_center[1]]
         x, y = np.mgrid[0:self.search_region.height:1, 0:self.search_region.width:1]
         pos = np.dstack((x, y))
@@ -86,21 +89,19 @@ class GrayscaleMosseTracker:
         for angle in np.arange(-20,20,5):
             img_tmp = rotateImage(image_color, angle, image_center) # Rotate
             img_tmp = np.sum(img_tmp, 2) / 3
-            for blur in range(1,10):
-                img_tmp = cv2.blur(img_tmp, (blur,blur))
-                patch = self.crop_patch(img_tmp)
-                patch = pre_process(patch)
-                F = fft2(patch)
-                A += self.G * np.conj(F)
-                B += F * np.conj(F)
+            patch = self.crop_patch(img_tmp)
+            patch = pre_process(patch)
+            F = fft2(patch)
+            A += self.G * np.conj(F)
+            B += F * np.conj(F)                
         
         # compute filter
         self.A = A
         self.B = B
         self.H_conj = self.A / (self.B + self.epsilon)
 
-        if self.save_img and self.frame % 10 == 0:
-            plot(image, g.real, self.region, "{0}_{1}".format(self.name, self.frame))
+        if self.save_img and self.frame % self.save_frame == 0:
+            plot(image_color, g.real, self.search_region, "{0}_{1}".format(self.name, self.frame))
 
     def detect(self, image_color):
         """
@@ -119,8 +120,8 @@ class GrayscaleMosseTracker:
         responsef = F * self.H_conj
         response = ifft2(responsef)
 
-        if self.save_img and self.frame % 10 == 0:
-            plot(image, response, self.search_region, "{0}_{1}".format(self.name, self.frame))
+        if self.save_img and self.frame % self.save_frame == 0:
+            plot(image_color, response, self.search_region, "{0}_{1}".format(self.name, self.frame))
         
         # get indices of max value
         r, c = np.unravel_index(np.argmax(response), response.shape)

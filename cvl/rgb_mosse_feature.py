@@ -29,16 +29,20 @@ def get_features(image):
 class MultiFeatureMosseTracker():
     def __init__(self, 
                  learning_rate = 0.125,
+                 epsilon=1e-3,
                  search_size = 1.0,
+                 sigma = 2.0,
                  save_img=False,
-                 name='rgb_hog'):
+                 name='rgb_hog',
+                 save_frame = 10):
         self.learning_rate = learning_rate 
-        self.lambda_ = 1e-5
-        self.sigma = 2.0
+        self.epsilon = epsilon
+        self.sigma = 2.0 / search_size
         
         self.search_size = search_size
         self.save_img = save_img
         self.name = name
+        self.save_frame = save_frame
 
 
     def get_patch(self, features):
@@ -84,20 +88,18 @@ class MultiFeatureMosseTracker():
         image_center = (self.region.xpos + self.region_center[1], self.region.ypos + self.region_center[0])
         for angle in np.arange(-20,20,5):
             img_tmp = rotateImage(image, angle, image_center) # Rotate
-            for blur in range(1,10):
-                img_tmp = cv2.blur(img_tmp, (blur,blur))
-                features = get_features(img_tmp)
-                f = self.get_patch(features)
-                f = self.preprocess_data(f)
-                F = fft2(f)
-                A += self.G * np.conj(F)
-                B += F * np.conj(F)
+            features = get_features(img_tmp)
+            f = self.get_patch(features)
+            f = self.preprocess_data(f)
+            F = fft2(f)
+            A += self.G * np.conj(F)
+            B += F * np.conj(F)
 
         self.A = A
         self.B = B
-        self.H_conj = self.A / (self.B + self.lambda_)
+        self.H_conj = self.A / (self.B + self.epsilon)
 
-        if self.save_img and self.frame % 10 == 0:
+        if self.save_img and self.frame % self.save_frame == 0:
             plot(image, g, self.search_region, "{0}_{1}".format(self.name, self.frame))
 
 
@@ -111,7 +113,7 @@ class MultiFeatureMosseTracker():
         responses = ifft2(R)
         response = responses.sum(axis=0)  # .real
         r, c = np.unravel_index(np.argmax(response), response.shape)
-        if self.save_img and self.frame % 10 == 0:
+        if self.save_img and self.frame % self.save_frame == 0:
             plot(image, response, self.search_region, "{0}_{1}".format(self.name, self.frame))
 
         # Keep for visualisation
@@ -133,4 +135,4 @@ class MultiFeatureMosseTracker():
         self.A = self.learning_rate * self.G * np.conj(F) + (1-self.learning_rate) * self.A
         self.B = self.learning_rate * F * np.conj(F) + (1-self.learning_rate) * self.B
 
-        self.H_conj = self.A / (self.B + self.lambda_)
+        self.H_conj = self.A / (self.B + self.epsilon)

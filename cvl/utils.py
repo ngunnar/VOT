@@ -70,7 +70,7 @@ def plot(image, response, region, name):
         
         if ymax >= image.shape[0]:
             ymax = image.shape[0]
-            dyy = ymin - ymax
+            dyy = ymax - ymin
         else:
             ymax = ymax
             dyy = response.shape[0]

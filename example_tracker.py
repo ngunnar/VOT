@@ -10,8 +10,13 @@ from cvl.grayscale_mosse import GrayscaleMosseTracker
 
 dataset_path = "Mini-OTB"
 
-SHOW_TRACKING = True
-SEQUENCE_IDX = 0
+SHOW_TRACKING = False
+SAVE_IMAGES = True
+SEQUENCE_IDX = 1
+search_size = 1
+learning_rate = 0.125
+name="grayscale"
+save_frame = 1
 
 if __name__ == "__main__":
 
@@ -23,7 +28,11 @@ if __name__ == "__main__":
         cv2.namedWindow("tracker")
 
     #tracker = NCCTracker()
-    tracker = GrayscaleMosseTracker(save_img=True)
+    tracker = GrayscaleMosseTracker(save_img=SAVE_IMAGES,
+                                    search_size=search_size,
+                                    learning_rate=learning_rate,
+                                    name=name,
+                                    save_frame=save_frame)
 
     for frame_idx, frame in enumerate(a_seq):
         print(f"{frame_idx} / {len(a_seq)}")

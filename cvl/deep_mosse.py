@@ -21,6 +21,7 @@ def to_torch_tensor(image):
 class DeepTracker():
     def __init__(self, 
                 feature_level = 3, #[0, 3, 6]
+                epsilon=1e-3,
                 search_size = 1.0,
                 learning_rate = 0.05,
                 save_img = False,
@@ -29,9 +30,9 @@ class DeepTracker():
                 save_frame = 10):
         
         assert feature_level in [0, 3, 6], "Only use feature maps after conv2d layers, {0}".format(feature_level)
-        self.learning_rate = learning_rate 
-        self.lambda_ = 1e-2
-        self.sigma = sigma
+        self.learning_rate = learning_rate
+        self.epsilon = epsilon
+        self.sigma = sigma / search_size
         self.org_model = alexnetFeatures(pretrained=True)
         self.model = AlexNetRefined(self.org_model, feature_level)
         self.search_size = search_size
@@ -83,20 +84,18 @@ class DeepTracker():
 
         A = self.G * np.conj(F)
         B = F * np.conj(F)        
-
+        
         image_center = (self.region.xpos + self.region_center[1], self.region.ypos + self.region_center[0])
         for angle in np.arange(-20,20,5):
             img_tmp = rotateImage(image, angle, image_center) # Rotate
-            for blur in range(1,10):
-                img_tmp = cv2.blur(img_tmp, (blur,blur))
-                f = self.get_patch_features(img_tmp)
-                F = fft2(f)
-                A += self.G * np.conj(F)
-                B += F * np.conj(F)
+            f = self.get_patch_features(img_tmp)
+            F = fft2(f)
+            A += self.G * np.conj(F)
+            B += F * np.conj(F)
 
         self.A = A
         self.B = B
-        self.H_conj = self.A / (self.B + self.lambda_)
+        self.H_conj = self.A / (self.B + self.epsilon)
 
         if self.save_img and self.frame % self.save_frame == 0:
             response = cv2.resize(g.real, dsize=(self.search_region_shape[1],self.search_region_shape[0]), interpolation=cv2.INTER_CUBIC)
@@ -137,4 +136,4 @@ class DeepTracker():
         self.A = self.learning_rate * self.G * np.conj(F) + (1-self.learning_rate) * self.A
         self.B = self.learning_rate * F * np.conj(F) + (1-self.learning_rate) * self.B
 
-        self.H_conj = self.A / (self.B + self.lambda_)
+        self.H_conj = self.A / (self.B + self.epsilon)

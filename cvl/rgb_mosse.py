@@ -14,15 +14,19 @@ from .utils import pre_process, rotateImage, plot
 class MultiMosseTracker():
     def __init__(self, 
                  learning_rate = 0.125,
+                 epsilon=1e-3,
                  search_size = 1.0,
+                 sigma = 2.0,
                  save_img=False,
-                 name='rgb'):
+                 name='rgb',
+                 save_frame = 10):
+        self.epsilon = epsilon
         self.learning_rate = learning_rate 
-        self.epsilon = 1e-5
-        self.sigma = 2.0
+        self.sigma = sigma/search_size
         self.search_size = search_size
         self.save_img = save_img
         self.name = name
+        self.save_frame = save_frame
 
     def get_patch(self, features):
         region = self.search_region
@@ -67,20 +71,18 @@ class MultiMosseTracker():
         image_center = (self.region.xpos + self.region_center[1], self.region.ypos + self.region_center[0])
         for angle in np.arange(-20,20,5):
             img_tmp = rotateImage(image, angle, image_center) # Rotate
-            for blur in range(1,10):
-                img_tmp = cv2.blur(img_tmp, (blur,blur))
-                features = [img_tmp[...,i] for i in range(img_tmp.shape[-1])]
-                f = self.get_patch(features)
-                f = self.preprocess_data(f)
-                F = fft2(f)
-                A += self.G * np.conj(F)
-                B += F * np.conj(F)
+            features = [img_tmp[...,i] for i in range(img_tmp.shape[-1])]
+            f = self.get_patch(features)
+            f = self.preprocess_data(f)
+            F = fft2(f)
+            A += self.G * np.conj(F)
+            B += F * np.conj(F)                
         
         self.A = A
         self.B = B
         self.H_conj = self.A / (self.B + self.epsilon)
 
-        if self.save_img and self.frame % 10 == 0:
+        if self.save_img and self.frame % self.save_frame == 0:
             plot(image, g, self.search_region, "{0}_{1}".format(self.name, self.frame))
 
     def detect(self, image):
@@ -94,7 +96,7 @@ class MultiMosseTracker():
         responses = ifft2(R)
         response = responses.sum(axis=0)  # .real
         r, c = np.unravel_index(np.argmax(response), response.shape)
-        if self.save_img and self.frame % 10 == 0:
+        if self.save_img and self.frame % self.save_frame == 0:
             plot(image, response, self.search_region, "{0}_{1}".format(self.name, self.frame))
 
         # Keep for visualisation
