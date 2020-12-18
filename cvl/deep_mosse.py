@@ -24,7 +24,7 @@ class DeepTracker():
                 search_size = 1.0,
                 learning_rate = 0.05,
                 save_img = False,
-                sigma = 1.0,
+                sigma = 2.0,
                 name="deep",
                 save_frame = 10):
         

@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import numpy as np
 import os
 from tqdm import tqdm
@@ -7,9 +5,6 @@ import matplotlib.pyplot as plt
 import matplotlib
 
 from cvl.dataset import OnlineTrackingBenchmark
-from cvl.trackers import NCCTracker
-from cvl.grayscale_mosse import GrayscaleMosseTracker
-
 
 def compute_iou(frame_data, tracked_box):
     gt_box = frame_data['bounding_box']
@@ -19,7 +14,7 @@ def compute_iou(frame_data, tracked_box):
 
     return iou
 
-def compute_ar(iou_list, threshold=0.1, threshold_frames=10):
+def compute_ar(iou_list, n, threshold=0.1, threshold_frames=10):
     # get the index where the iou is below the threshold for threshold_frames consecutive values
     idx_low = len(iou_list)
     idx_count = 0
@@ -36,13 +31,11 @@ def compute_ar(iou_list, threshold=0.1, threshold_frames=10):
 
     # compute accuracy within the successfully tracked period
     accuracy_ = np.asarray(iou_list[:idx_low]).mean()
-    robustness_ = idx_low / len(iou_list)
+    robustness_ = idx_low / n
 
     return accuracy_, robustness_
 
-
-if __name__ == "__main__":
-
+def evaluate(Tracker, name, **kwargs):
     # initialise the dataset
     dataset_path = "Mini-OTB"
     dataset = OnlineTrackingBenchmark(dataset_path)
@@ -57,45 +50,49 @@ if __name__ == "__main__":
         iou = []
 
         # initialise the tracker
-        tracker = GrayscaleMosseTracker()
+        tracker = Tracker(**kwargs)
 
         # initialise progress bar
         process_desc = "Seq {:}/{:}, '{:s}'"
         progress_bar = tqdm(initial=0, leave=True, total=len(a_seq),
                             desc=process_desc.format(int(seq_id) + 1, len(dataset), a_seq.sequence_name),
                             position=0)
-        for frame_idx, frame in enumerate(a_seq):
-            image_color = frame['image']
+        try:
+            for frame_idx, frame in enumerate(a_seq):
+                image_color = frame['image']
 
-            if frame_idx == 0:
-                bbox = frame['bounding_box']
-                if bbox.width % 2 == 0:
-                    bbox.width += 1
+                if frame_idx == 0:
+                    bbox = frame['bounding_box']
+                    if bbox.width % 2 == 0:
+                        bbox.width += 1
 
-                if bbox.height % 2 == 0:
-                    bbox.height += 1
+                    if bbox.height % 2 == 0:
+                        bbox.height += 1
 
-                current_position = bbox
-                tracker.start(image_color, bbox)
-            else:
-                tracker.detect(image_color)
-                tracker.update(image_color)
+                    current_position = bbox
+                    tracker.start(image_color, bbox)
+                else:
+                    tracker.detect(image_color)
+                    tracker.update(image_color)
 
-            # compute iou
-            iou.append(compute_iou(frame, tracker.region))
+                # compute iou
+                iou.append(compute_iou(frame, tracker.region))
 
-            # Update train bar
-            progress_bar.update(1)
+                # Update train bar
+                progress_bar.update(1)
+        except Exception as e: 
+            print(e)
         progress_bar.close()
 
         # compute accuracy and robustness
-        acc, rob = compute_ar(iou)
+        acc, rob = compute_ar(iou, len(a_seq))
         acc_list.append(acc)
         rob_list.append(rob)
 
     # average accuracy and robustness
     acc_avg = np.asarray(acc_list).mean()
     rob_avg = np.asarray(rob_list).mean()
+    print("Name {0}".format(name))
     print("Average ACC {0}".format(acc_avg))
     print("Average ROB {0}".format(rob_avg))
     # plot accuacry / robustness plot
@@ -115,4 +112,4 @@ if __name__ == "__main__":
     path = os.path.join(os.getcwd(), 'results')
     if not os.path.exists(path):
         os.makedirs(path)
-    plt.savefig(os.path.join(path, 'grayscale.png'))
+    plt.savefig(os.path.join(path, '{0}.png'.format(name)))

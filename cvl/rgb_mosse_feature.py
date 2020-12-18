@@ -31,7 +31,7 @@ class MultiFeatureMosseTracker():
                  learning_rate = 0.125,
                  search_size = 1.0,
                  save_img=False,
-                 name='rgb'):
+                 name='rgb_hog'):
         self.learning_rate = learning_rate 
         self.lambda_ = 1e-5
         self.sigma = 2.0
@@ -81,9 +81,7 @@ class MultiFeatureMosseTracker():
         A = np.conj(self.G) * F
         B = np.conj(F) * F
 
-
         image_center = (self.region.xpos + self.region_center[1], self.region.ypos + self.region_center[0])
-        k = 0
         for angle in np.arange(-20,20,5):
             img_tmp = rotateImage(image, angle, image_center) # Rotate
             for blur in range(1,10):
@@ -94,7 +92,7 @@ class MultiFeatureMosseTracker():
                 F = fft2(f)
                 A += self.G * np.conj(F)
                 B += F * np.conj(F)
-                k += 1
+
         self.A = A
         self.B = B
         self.H_conj = self.A / (self.B + self.lambda_)
